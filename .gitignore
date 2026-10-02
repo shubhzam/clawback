@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .env
 .pytest_cache/
+.DS_Store
 backend/storage/
 backend/evals/results.json
 frontend/node_modules/
