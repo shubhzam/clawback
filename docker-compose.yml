@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: clawback
+      POSTGRES_PASSWORD: clawback
+      POSTGRES_DB: clawback
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clawback"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CLAWBACK_DATABASE_URL: postgresql+psycopg://clawback:clawback@db:5432/clawback
+      CLAWBACK_LLM_PROVIDER: ${CLAWBACK_LLM_PROVIDER:-mock}
+      CLAWBACK_ANTHROPIC_API_KEY: ${CLAWBACK_ANTHROPIC_API_KEY:-}
+      CLAWBACK_STORAGE_DIR: /data
+    ports:
+      - "8000:8000"
+    volumes:
+      - storage:/data
+
+  frontend:
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  storage:
